@@ -145,4 +145,4 @@ def predicciones_modelo(ventas, modelo, inicio):
 
 # prueba: solo corre si se ejecuta este archivo solo (python pronostico.py)
 if __name__ == "__main__":
-    print(elegir_mejor(ventasVasos, 4))
+    print(media_movil([1120,1300], 2))

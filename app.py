@@ -171,7 +171,7 @@ with tab_venta:
     st.header(f"Política de inventario y punto de reorden - {producto}")
     st.info(
         "Al registrar una venta se resta del stock y se revisan dos alarmas: "
-        "🟡 punto de reorden (R): hay que hacer el pedido. "
+        "🟡 alarma (R): hay que hacer el pedido. "
         "🔴 stock de seguridad (SS): ya se está usando la reserva."
     )
 
@@ -180,18 +180,30 @@ with tab_venta:
     c1.metric("σ - Desviación de las ventas", f"{p['σ']:,.1f} und")
     c2.metric("SS - Stock de seguridad (Z × σ)", f"{p['SS']:,.1f} und")
     c3.metric("🔴 SS para Q* (alarma crítica)", f"{p['SS_Q']:,.0f} und")
-    c4.metric("🟡 R - Punto de reorden", f"{p['R']:,.0f} und")
+    c4.metric("🟡 Alarma (R = d x m + SS)", f"{p['R']:,.0f} und")
     c5, c6, c7, c8 = st.columns(4)
     c5.metric("d - Demanda diaria", f"{p['d']:,.1f} und/día")
     c6.metric("Días de stock", f"{p['Días de stock']:,.1f} días")
     c7.metric("m - Días del proveedor", f"{m} días")
     c8.metric("Días de SS", f"{p['Días de SS']:,.1f} días")
+    st.subheader("Cuánto pedir cuando suena la alarma")
+    c9, c10, c11 = st.columns(3)
+    c9.metric("Pedidos completos de Q* en el año", f"{p['Pedidos completos']}")
+    c10.metric("Faltante del año (D - pedidos x Q*)", f"{p['Faltante del año']:,.0f} und")
+    c11.metric("PR - Punto de reorden (último pedido)", f"{p['PR']:,.0f} und")
+    st.caption("PR = lo que falta para completar la demanda del año menos el SS (como en el tablero: 5000 - 3162,3 - 52,17 = 1785,53).")
     st.success(
-        f"Cuando queden {p['R']:,.0f} {producto.lower()} se piden {r['Q*']:,.0f} unidades."
+        f"Cuando queden {p['R']:,.0f} {producto.lower()} suena la alarma y se pide: "
+        f"{r['Q*']:,.0f} und en los pedidos normales y {p['PR']:,.0f} und (PR) en el último del año."
     )
 
+    # grafica de la politica como la de los apuntes del profe
+    st.subheader("Gráfica de la política de inventario")
+    st.altair_chart(graficas.grafica_politica_clase(r["Q*"], r["T"], p["R"], p["SS_Q"], p["Días de stock"],
+                                                    m, p["Días de SS"], p["PR"]), width="stretch")
+
     # diente de sierra (punto 9 del taller)
-    st.subheader("Diagrama de la política de inventario")
+    st.subheader("Simulación de varios ciclos (diente de sierra)")
     demora = st.slider("Días de retraso del proveedor", 0, 10, 0,
                        key=f"demora_{producto}")
     tabla_inv, pedidos, llegadas = graficas.simular_inventario(r["Q*"], p["d"], p["R"], m, demora=demora)
@@ -241,11 +253,11 @@ with tab_venta:
         )
     elif estado == "pedir":
         st.warning(
-            f"🟡 Se llegó al punto de reorden (R = {p['R']:,.0f}). Stock: {stock}. "
+            f"🟡 Sonó la alarma (R = {p['R']:,.0f}). Stock: {stock}. "
             f"Hay que pedir {r['Q*']:,.0f} unidades."
         )
     else:
-        st.success(f"✅ Stock bien. Faltan {stock - p['R']:,.0f} unidades para llegar a R.")
+        st.success(f"✅ Stock bien. Faltan {stock - p['R']:,.0f} unidades para llegar a la alarma.")
 
     if st.session_state["historial"][producto]:
         st.caption("Movimientos: " + " → ".join(st.session_state["historial"][producto]))
@@ -277,11 +289,12 @@ with tab_resumen:
             st.caption("Gráfico de demanda")
             st.altair_chart(graficas.grafica_demanda(ventas["mes"], c["lista"]), width="stretch")
         with col3:
-            st.caption("Inventario (diente de sierra)")
-            t, ped, _ = graficas.simular_inventario(c["r"]["Q*"], c["p"]["d"], c["p"]["R"], c["m"])
-            st.altair_chart(graficas.grafica_diente_sierra(t, c["p"]["R"], c["p"]["SS_Q"], ped, alto=170),
-                            width="stretch")
-        st.caption(f"Cuando queden {c['p']['R']:,.0f} unidades se piden {c['r']['Q*']:,.0f}.")
+            st.caption("Gráfica de inventario")
+            st.altair_chart(graficas.grafica_politica_clase(c["r"]["Q*"], c["r"]["T"], c["p"]["R"], c["p"]["SS_Q"],
+                                                            c["p"]["Días de stock"], c["m"], c["p"]["Días de SS"],
+                                                            c["p"]["PR"], alto=220, con_zoom=False), width="stretch")
+        st.caption(f"Alarma: cuando queden {c['p']['R']:,.0f} unidades. Se piden {c['r']['Q*']:,.0f} "
+                   f"(el último pedido del año, PR = {c['p']['PR']:,.0f}).")
         st.divider()
 
     # tabla con todo (esta misma va al excel)
@@ -301,7 +314,8 @@ with tab_resumen:
         "SS (und)": round(c["p"]["SS"], 2),
         "SS para Q* (und)": round(c["p"]["SS_Q"], 2),
         "d (und/día)": round(c["p"]["d"], 2),
-        "R - Punto de reorden (und)": round(c["p"]["R"], 2),
+        "Alarma R (und)": round(c["p"]["R"], 2),
+        "PR - Punto de reorden (und)": round(c["p"]["PR"], 2),
         "Días de stock": round(c["p"]["Días de stock"], 2),
         "m (días)": c["m"],
         "Días de SS": round(c["p"]["Días de SS"], 2),

@@ -68,6 +68,21 @@ def dias_de_stock(T, m, dias_SS):
     return T - m - dias_SS
 
 
+def calcular_PR(D, Q, SS_Q):
+    # PR = cuanto se pide cuando suena la alarma (como en los apuntes del profe)
+    # en el tablero: 5000 - 3162.3 = 1837.7 (lo que falta para completar el año)
+    #                PR = 1837.7 - 52.17 = 1785.53
+    # se le resta el SS porque cuando llega el pedido todavia quedan esas unidades
+    # si en el año caben varios pedidos (N mayor a 2) los primeros son de Q*
+    # y el PR es el ultimo pedido, el que completa la demanda del año
+    pedidos_completos = math.floor(D / Q)        # floor = redondear hacia abajo
+    faltante = D - pedidos_completos * Q         # lo que falta para completar D
+    if faltante - SS_Q <= 0:                     # si lo que falta es menor que el SS no vale la pena otro pedido,
+        pedidos_completos = pedidos_completos - 1  # entonces se junta con el ultimo pedido completo
+        faltante = faltante + Q
+    return pedidos_completos, faltante, faltante - SS_Q
+
+
 def calcular_politica(ventas, D, Q, T, Z, m, dias_laborales, usar_sigma_anual=False):
     # junta todo el modulo 3 para un producto
     # D viene del modulo 1, Q* y T del modulo 2, Z y m de productos.csv
@@ -80,6 +95,7 @@ def calcular_politica(ventas, D, Q, T, Z, m, dias_laborales, usar_sigma_anual=Fa
     d = calcular_d(D, dias_laborales)
     R = calcular_R(d, m, SS_Q)
     dSS = dias_de_SS(SS_Q, T, Q)
+    completos, faltante, PR = calcular_PR(D, Q, SS_Q)
     return {
         "σ": sigma,
         "SS": SS,
@@ -89,6 +105,9 @@ def calcular_politica(ventas, D, Q, T, Z, m, dias_laborales, usar_sigma_anual=Fa
         "R": R,
         "Días de SS": dSS,
         "Días de stock": dias_de_stock(T, m, dSS),
+        "Pedidos completos": completos,
+        "Faltante del año": faltante,
+        "PR": PR,
     }
 
 
@@ -113,4 +132,5 @@ if __name__ == "__main__":
     print("SS_Q =", round(SS_Q, 2))                           # 52.17
     print("R =", round(calcular_R(d, 7, SS_Q), 2))            # en el tablero dio 147.99
     print("Días de SS =", round(dias_de_SS(SS_Q, T, Q), 2))   # 3.81
+    print("PR =", round(calcular_PR(D, Q, SS_Q)[2], 2))       # 1785.53
     print(estado_inventario(300, 148, 52), estado_inventario(140, 148, 52), estado_inventario(40, 148, 52))
