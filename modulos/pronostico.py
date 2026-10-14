@@ -11,7 +11,7 @@ Lo saque de:
 """
 import pandas as pd
 tabla = pd.read_csv("datos/ventas.csv")
-ventasVasos = tabla["Vasos"].tolist()#[-6:]
+ventasTazas = tabla["Tazas"].tolist()   # ventas de tazas para probar las funciones
 
 def media_movil(ventas, n):
     # media movil: promedio de los ultimos n meses

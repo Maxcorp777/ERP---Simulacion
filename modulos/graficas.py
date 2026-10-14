@@ -139,7 +139,7 @@ def grafica_politica_clase(Q, T, R, SS_Q, dias_stock, m, dias_SS, PR, alto=320, 
     return alt.vconcat(completa, zoom)
 
 
-# prueba con los vasos (Q*=2240, d=34.36, R=202, m=5)
+# prueba con numeros de ejemplo (Q*=2240, d=34.36, R=202, m=5)
 if __name__ == "__main__":
     tabla, pedidos, llegadas = simular_inventario(2240, 34.36, 201.6, 5)
     print("Pedidos en los días:", pedidos)

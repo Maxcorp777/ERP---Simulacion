@@ -8,6 +8,8 @@ Los calculos estan en la carpeta modulos:
 - seguridad.py: modulo 3, stock de seguridad y punto de reorden
 - graficas.py: el diente de sierra y la grafica de ventas
 - exportar.py: el excel que se descarga
+
+como ejecutar todo python -m streamlit run app.py
 """
 import altair as alt
 import pandas as pd
@@ -90,10 +92,13 @@ tab_datos, tab_pron, tab_eoq, tab_venta, tab_resumen = st.tabs(
 with tab_datos:
     st.header(f"Datos de {producto}")
     st.info(
-        "Ventas de los últimos 12 meses y costos del producto. "
+        "Ventas de los últimos 24 meses y costos del producto. "
         "Cu = costo unitario, Cp = costo de pedir, i = % de almacenamiento, "
         "m = días que tarda el proveedor, Z = nivel de servicio."
     )
+    st.caption("Datos reales: ventas de una tienda online pequeña del Reino Unido (dataset Online Retail II, "
+               "UCI Machine Learning Repository), de diciembre 2009 a noviembre 2011. Productos de la colección "
+               "Red Retrospot. Precios pasados a pesos con 1 £ = 4.550 COP. Cp, i y m son supuestos.")
     st.subheader(f"Costos - {producto}")
     c1, c2, c3 = st.columns(3)
     c1.metric("Cu - Costo unitario", f"${Cu:,.0f}")
