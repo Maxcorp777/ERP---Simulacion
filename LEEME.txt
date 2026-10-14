@@ -1,0 +1,14 @@
+ERP de Inventarios (proyecto EOQ - Investigación de Operaciones)
+
+1. Instalar librerías (una sola vez):   pip install -r requirements.txt
+2. Probar el módulo de pronóstico:       python modulos/pronostico.py
+3. Abrir el ERP en el navegador:         streamlit run app.py
+
+Estructura:
+- app.py               -> interfaz
+- datos/productos.csv  -> costos de cada producto (Cu, Cp, i, m, Z)
+- datos/ventas.csv     -> ventas mensuales
+- modulos/pronostico.py-> MM, ponderados, MSE -> D   (parte 1, en progreso)
+- modulos/eoq.py       -> Ch, Q*, N, costos, CT      (pendiente)
+- modulos/seguridad.py -> SS, alarmas, días          (pendiente)
+- modulos/graficas.py  -> gráficas                   (pendiente)

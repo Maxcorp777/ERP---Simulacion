@@ -1,0 +1,8 @@
+# Archivos que Git NO debe subir
+__pycache__/
+*.pyc
+.venv/
+venv/
+.vscode/
+*.xlsx
+~$*

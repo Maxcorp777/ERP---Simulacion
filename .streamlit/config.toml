@@ -1,0 +1,7 @@
+[theme]
+base = "light"                         # "light" (claro) o "dark" (oscuro)
+primaryColor = "#2E9E6B"               # verde: pestaña activa, botones, selección
+backgroundColor = "#FFFFFF"            # fondo principal (blanco)
+secondaryBackgroundColor = "#E3F2FD"   # azul clarito: barra lateral y cajas
+textColor = "#1F2937"                  # color del texto (gris oscuro)
+font = "sans serif"                    # tipo de letra
