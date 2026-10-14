@@ -15,8 +15,8 @@ import streamlit as st
 from modulos import pronostico, eoq, seguridad, graficas, exportar
 
 st.set_page_config(page_title="OptiStock ERP", page_icon="📦", layout="wide")
-st.title("📦 OptiStock — ERP de Inventarios")
-st.caption("Tienda de vajilla · Pronóstico, lote económico y punto de reorden")
+st.title("📦 OptiStock - ERP de Inventarios")
+st.caption("Tienda de vajilla: pronóstico, lote económico y punto de reorden")
 
 # Estilo extra (CSS): tarjetas de resultados en verde claro
 st.markdown(
@@ -45,8 +45,8 @@ producto = st.sidebar.selectbox("Producto", productos["producto"])
 fila = productos[productos["producto"] == producto].iloc[0]          # valores del CSV
 
 # Sensibilidad (taller punto 2): cambiar las variables y ver cómo cambia todo
-st.sidebar.subheader("Parámetros (sensibilidad)")
-st.sidebar.caption("Cámbialos para ver cómo afectan Q*, los costos y las alarmas.")
+st.sidebar.subheader("Parámetros")
+st.sidebar.caption("Si cambia un valor, se recalcula todo (análisis de sensibilidad).")
 Cu = st.sidebar.number_input("Cu - Costo unitario ($)", min_value=1.0,
                              value=float(fila["Cu"]), step=500.0, key=f"Cu_{producto}")
 Cp = st.sidebar.number_input("Cp - Costo de pedir ($)", min_value=1.0,
@@ -60,8 +60,8 @@ nivel = st.sidebar.selectbox("Nivel de servicio", list(NIVELES), index=1, key=f"
 Z = NIVELES[nivel]
 tipo_sigma = st.sidebar.radio(
     "σ para el stock de seguridad",
-    ["Mensual (desviación de las ventas)", "Anual (σ mensual × √12)"],
-    help="Pendiente de confirmar con el profe. Anual = mismo periodo que D.",
+    ["Mensual", "Anual (σ × √12)"],
+    help="La anual es para que quede en el mismo periodo que D.",
 )
 usar_sigma_anual = tipo_sigma.startswith("Anual")
 DIAS = int(fila["dias_operacion"])
@@ -89,10 +89,9 @@ tab_datos, tab_pron, tab_eoq, tab_venta, tab_resumen = st.tabs(
 with tab_datos:
     st.header(f"Datos de {producto}")
     st.info(
-        "Aquí están los datos de entrada del producto: las ventas de los últimos "
-        "12 meses y sus costos (Cu = costo unitario, Cp = costo de pedir, "
-        "i = % de almacenamiento, m = días del proveedor, Z = nivel de servicio). "
-        "Los costos se pueden cambiar en la barra lateral."
+        "Ventas de los últimos 12 meses y costos del producto. "
+        "Cu = costo unitario, Cp = costo de pedir, i = % de almacenamiento, "
+        "m = días que tarda el proveedor, Z = nivel de servicio."
     )
     st.subheader(f"Costos - {producto}")
     c1, c2, c3 = st.columns(3)
@@ -114,9 +113,9 @@ with tab_datos:
 with tab_pron:
     st.header(f"Pronóstico de {producto}")
     st.info(
-        "Se prueban 5 modelos con los meses pasados: cada uno predice cada mes "
-        "usando solo los meses anteriores, y se califica con el MSE. "
-        "Gana el de menor MSE, y con él se calcula el pronóstico del próximo mes y la demanda anual (D)."
+        "Probamos 5 modelos (media móvil y ponderado) y sacamos el MSE de cada uno. "
+        "El que tenga menor MSE es el que usamos para el pronóstico del próximo mes, "
+        "y D = pronóstico x 12."
     )
     st.subheader("Comparación de modelos (MSE)")
     tabla_mse = pd.DataFrame({"Modelo": list(resultados.keys()), "MSE": list(resultados.values())})
@@ -147,9 +146,8 @@ with tab_pron:
 with tab_eoq:
     st.header(f"Lote económico de pedido (EOQ) - {producto}")
     st.info(
-        "El EOQ calcula cuántas unidades pedir cada vez (Q*) para que el costo total "
-        "del inventario sea el mínimo: si se pide poco, se paga mucho en pedidos; "
-        "si se pide mucho, se paga mucho en bodega. Q* es el punto de equilibrio."
+        "Q* es la cantidad que hay que pedir cada vez para que el costo total sea el menor. "
+        "Si se pide poco toca hacer muchos pedidos, y si se pide mucho sale caro almacenar."
     )
     st.subheader("Cuánto pedir")
     c1, c2, c3 = st.columns(3)
@@ -164,16 +162,16 @@ with tab_eoq:
     c6.metric("Costo de mercancía", f"${r['Costo de mercancía']:,.0f}")
     c7.metric("CT - Costo total", f"${r['CT']:,.0f}")
 
-    st.caption(f"D = {D:,.0f} und/año (del pronóstico) · Ch = i × Cu = ${r['Ch']:,.0f} por unidad al año")
-    st.success(f"Política: cada vez que se pida {producto.lower()}, pedir {r['Q*']:,.0f} unidades.")
+    st.caption(f"D = {D:,.0f} und/año, Ch = i x Cu = ${r['Ch']:,.0f} por unidad al año")
+    st.success(f"Cada pedido de {producto.lower()} debe ser de {r['Q*']:,.0f} unidades.")
 
 # ---------------- Pestaña Política y ventas (módulo 3) ----------------
 with tab_venta:
     st.header(f"Política de inventario y punto de reorden - {producto}")
     st.info(
-        "Cada vez que se registra una venta, el sistema descuenta el stock y lo compara con dos alarmas: "
-        "🟡 el punto de reorden (R), donde hay que llamar al proveedor, y 🔴 el stock de seguridad (SS), "
-        "la reserva para cuando el proveedor se demora o se vende más de lo normal."
+        "Al registrar una venta se resta del stock y se revisan dos alarmas: "
+        "🟡 punto de reorden (R): hay que hacer el pedido. "
+        "🔴 stock de seguridad (SS): ya se está usando la reserva."
     )
 
     st.subheader("Cuándo pedir")
@@ -188,24 +186,23 @@ with tab_venta:
     c7.metric("m - Días del proveedor", f"{m} días")
     c8.metric("Días de SS", f"{p['Días de SS']:,.1f} días")
     st.success(
-        f"Política: cuando el inventario de {producto.lower()} baje a {p['R']:,.0f} unidades, "
-        f"pedir {r['Q*']:,.0f} unidades."
+        f"Cuando queden {p['R']:,.0f} {producto.lower()} se piden {r['Q*']:,.0f} unidades."
     )
 
     # --- Diagrama general de la política (diente de sierra) ---
     st.subheader("Diagrama de la política de inventario")
-    demora = st.slider("Días EXTRA que se demora el proveedor (simulación)", 0, 10, 0,
+    demora = st.slider("Días de retraso del proveedor", 0, 10, 0,
                        key=f"demora_{producto}")
     tabla_inv, pedidos, llegadas = graficas.simular_inventario(r["Q*"], p["d"], p["R"], m, demora=demora)
     st.altair_chart(graficas.grafica_diente_sierra(tabla_inv, p["R"], p["SS_Q"], pedidos), width="stretch")
     minimo = tabla_inv["Inventario"].min()
     if minimo <= 0:
-        st.error(f"🔴 Con {demora} días de demora el inventario llega a 0: hay faltante. "
-                 f"El stock de seguridad solo cubre {p['Días de SS']:.1f} días de retraso.")
+        st.error(f"🔴 Con {demora} días de retraso el inventario llega a 0 (faltante). "
+                 f"El SS alcanza para {p['Días de SS']:.1f} días.")
     elif minimo <= p["SS_Q"]:
-        st.warning(f"🔴 Con {demora} días de demora se consume el stock de seguridad (mínimo: {minimo:,.0f} und).")
+        st.warning(f"🔴 Con {demora} días de retraso se usa el stock de seguridad (baja hasta {minimo:,.0f} und).")
     else:
-        st.caption(f"Cada punto amarillo es un pedido. El inventario nunca baja de {minimo:,.0f} und.")
+        st.caption(f"Los puntos amarillos son los pedidos. Lo mínimo que llega el inventario es {minimo:,.0f} und.")
 
     # --- Stock actual: se guarda en st.session_state para que no se borre entre clics ---
     if "stock" not in st.session_state:
@@ -221,12 +218,12 @@ with tab_venta:
         cantidad = st.number_input("Unidades vendidas", min_value=1, value=50, step=1)
         if st.button("Registrar venta"):
             if cantidad > st.session_state["stock"][producto]:      # no se puede vender lo que no hay
-                st.error("No hay suficiente stock para esa venta.")
+                st.error("No hay stock suficiente.")
             else:
                 st.session_state["stock"][producto] -= cantidad
                 st.session_state["historial"][producto].append(f"Venta de {cantidad} und")
     with col_b:
-        st.write("Cuando llegue el pedido del proveedor:")
+        st.write("Llegó el pedido:")
         if st.button(f"Recibir pedido ({r['Q*']:,.0f} und)"):
             st.session_state["stock"][producto] += round(r["Q*"])
             st.session_state["historial"][producto].append(f"Llegó pedido de {r['Q*']:,.0f} und")
@@ -237,16 +234,16 @@ with tab_venta:
     estado = seguridad.estado_inventario(stock, p["R"], p["SS_Q"])
     if estado == "critico":
         st.error(
-            f"🔴 ¡ALERTA CRÍTICA! El stock ({stock}) está por debajo del stock de seguridad "
-            f"({p['SS_Q']:,.0f}). Se está consumiendo la reserva: si no se ha pedido, pida YA {r['Q*']:,.0f} unidades."
+            f"🔴 Alerta: el stock ({stock}) está por debajo del SS ({p['SS_Q']:,.0f}). "
+            f"Se está usando la reserva, hay que pedir {r['Q*']:,.0f} unidades ya."
         )
     elif estado == "pedir":
         st.warning(
-            f"🟡 Punto de reorden alcanzado: el stock ({stock}) bajó a R = {p['R']:,.0f}. "
-            f"Llame al proveedor y pida {r['Q*']:,.0f} unidades."
+            f"🟡 Se llegó al punto de reorden (R = {p['R']:,.0f}). Stock: {stock}. "
+            f"Hay que pedir {r['Q*']:,.0f} unidades."
         )
     else:
-        st.success(f"✅ Stock suficiente. Faltan {stock - p['R']:,.0f} unidades para llegar al punto de reorden.")
+        st.success(f"✅ Stock bien. Faltan {stock - p['R']:,.0f} unidades para llegar a R.")
 
     if st.session_state["historial"][producto]:
         st.caption("Movimientos: " + " → ".join(st.session_state["historial"][producto]))
@@ -255,9 +252,8 @@ with tab_venta:
 with tab_resumen:
     st.header("Resumen de los 3 productos")
     st.info(
-        "Cada fila es un producto: su demanda anual (D), su gráfico de demanda, la cantidad a pedir (Q*) "
-        "y el diagrama de su política de inventario. El producto elegido usa los parámetros de la barra "
-        "lateral; los demás, los valores originales."
+        "Por producto: D, gráfico de demanda, Q* y gráfica de inventario. "
+        "El producto seleccionado usa los valores de la barra lateral."
     )
 
     todos = {}
@@ -276,14 +272,14 @@ with tab_resumen:
             st.metric("D - Demanda anual", f"{c['D']:,.0f}")
             st.metric("Q* - Unidades por pedido", f"{c['r']['Q*']:,.0f}")
         with col2:
-            st.caption("Gráfico de demanda (ventas mensuales)")
+            st.caption("Gráfico de demanda")
             st.altair_chart(graficas.grafica_demanda(ventas["mes"], c["lista"]), width="stretch")
         with col3:
-            st.caption("Política de inventario (diente de sierra)")
+            st.caption("Inventario (diente de sierra)")
             t, ped, _ = graficas.simular_inventario(c["r"]["Q*"], c["p"]["d"], c["p"]["R"], c["m"])
             st.altair_chart(graficas.grafica_diente_sierra(t, c["p"]["R"], c["p"]["SS_Q"], ped, alto=170),
                             width="stretch")
-        st.caption(f"Política: cuando queden {c['p']['R']:,.0f} unidades, pedir {c['r']['Q*']:,.0f}.")
+        st.caption(f"Cuando queden {c['p']['R']:,.0f} unidades se piden {c['r']['Q*']:,.0f}.")
         st.divider()
 
     # Tabla con todos los resultados (también va al Excel)
@@ -322,4 +318,4 @@ with tab_resumen:
                            file_name="ERP_inventarios_resultados.xlsx",
                            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
     except ImportError:
-        st.warning("Para descargar el Excel instala openpyxl:  pip install openpyxl")
+        st.warning("Falta instalar openpyxl: pip install openpyxl")
