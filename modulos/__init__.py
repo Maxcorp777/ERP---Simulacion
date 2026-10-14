@@ -1,2 +1,2 @@
-# Este archivo vacío le dice a Python que "modulos" es un paquete
-# (así app.py puede hacer: from modulos import pronostico)
+# este archivo va vacio, es para que python reconozca la carpeta modulos
+# y desde app.py se pueda hacer: from modulos import pronostico

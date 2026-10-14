@@ -1,41 +1,35 @@
 """
-Parte 1 del ERP: pronóstico de la demanda.
+Modulo 1: pronostico de la demanda
 
-Variables:
-- ventas: lista con las ventas mensuales (lo que ya pasó)
-- n: cuántos meses hacia atrás se promedian
-- MM (Media Móvil): promedio de los últimos n meses -> pronóstico del próximo mes
-- D (Demanda anual): pronóstico mensual x 12
+Aca se prueban varios metodos para pronosticar las ventas del proximo mes
+y se escoge el que menos se equivoca (el de menor MSE).
+Con ese pronostico se saca D (demanda anual), que es lo que usa el EOQ.
 
-Guía: Regresión lineal.xlsx -> hoja "MM y Ponderados" (columnas Media Movil N=2, N=3, N=4)
-      4. Teoria de inventarios.pptx -> diapositiva 11 (D = demanda en unidades/año)
+Lo saque de:
+- Regresion lineal.xlsx, hoja "MM y Ponderados" (media movil N=2, 3, 4 y ponderados)
+- 4. Teoria de inventarios.pptx, diapositiva 11 (D = demanda en unidades al año)
 """
 import pandas as pd
 tabla = pd.read_csv("datos/ventas.csv")
 ventasVasos = tabla["Vasos"].tolist()#[-6:]
 
 def media_movil(ventas, n):
-    # MM (Media Móvil): pronóstico del próximo mes
-    # Entra: ventas = lista de ventas mensuales | n = cuántos meses promediar (N)
-    # Hace:  toma los últimos n meses y los promedia
-    # Sale:  pronóstico del próximo mes (unidades)
-    ultimos = ventas[-n:]          # últimos n datos de la lista
+    # media movil: promedio de los ultimos n meses
+    # ej: con n=3 suma los 3 ultimos meses y divide entre 3
+    # eso da lo que se espera vender el proximo mes
+    ultimos = ventas[-n:]          # [-n:] coge los ultimos n datos de la lista
     return sum(ultimos) / len(ultimos)
 
 
 def demanda_anual(pronostico_mensual):
-    # D (Demanda anual)
-    # Entra: pronostico_mensual = lo que se espera vender en un mes
-    # Hace:  lo multiplica por 12 meses
-    # Sale:  D = demanda anual (unidades/año), la que se usa en Q*
+    # D = demanda del año, el pronostico es de un mes entonces se multiplica por 12
     return pronostico_mensual * 12
 
 
 def ponderadoN2(ventas, porcentajes):
-    # Promedio ponderado N = 2: el último mes pesa más
-    # Entra: ventas = lista de ventas | porcentajes = 2 pesos que suman 1, ej. [0.4, 0.6]
-    # Hace:  penúltimo mes × 1.er peso + último mes × 2.º peso
-    # Sale:  pronóstico del próximo mes (unidades)
+    # ponderado con 2 meses, el ultimo mes pesa mas porque es lo mas reciente
+    # pesos del profe: [0.4, 0.6] (tienen que sumar 1)
+    # = penultimo mes x 0.4 + ultimo mes x 0.6
     operacion1 = ventas[-2] * porcentajes[-2]
     operacion2 = ventas[-1] * porcentajes[-1]
     suma = operacion1 + operacion2
@@ -43,10 +37,9 @@ def ponderadoN2(ventas, porcentajes):
 
 
 def ponderadoN3(ventas, porcentajes):
-    # Promedio ponderado N = 3: el último mes pesa más
-    # Entra: ventas = lista de ventas | porcentajes = 3 pesos que suman 1, ej. [0.1, 0.4, 0.5]
-    # Hace:  hace 3 meses × 1.er peso + hace 2 meses × 2.º peso + último mes × 3.er peso
-    # Sale:  pronóstico del próximo mes (unidades)
+    # igual que el de arriba pero con 3 meses
+    # pesos del profe: [0.1, 0.4, 0.5]
+    # = hace 3 meses x 0.1 + hace 2 meses x 0.4 + ultimo mes x 0.5
     operacion1 = ventas[-3] * porcentajes[-3]
     operacion2 = ventas[-2] * porcentajes[-2]
     operacion3 = ventas[-1] * porcentajes[-1]
@@ -55,13 +48,13 @@ def ponderadoN3(ventas, porcentajes):
 
 
 def MSE(ListaReal, Predichos):
-    # MSE (Mean Squared Error, error cuadrático medio): califica un modelo
-    # Entra: ListaReal = ventas reales | Predichos = lo que predijo el modelo (mismos meses)
-    # Hace:  por cada mes: error = real − predicho, lo eleva al cuadrado y lo suma;
-    #        al final divide entre la cantidad de meses (n)
-    # Sale:  MSE → entre más pequeño, mejor el modelo
+    # MSE = error cuadratico medio, sirve para ver que tan bueno es un metodo
+    # por cada mes: error = lo que se vendio - lo que se predijo
+    # el error se eleva al cuadrado (para que los negativos no se cancelen con los positivos)
+    # se suman todos y se divide entre la cantidad de meses
+    # entre mas pequeño el MSE mejor
     acumulador = 0
-    for real, predicho in zip(ListaReal, Predichos):
+    for real, predicho in zip(ListaReal, Predichos):   # zip recorre las 2 listas al tiempo
         error = real - predicho
         acumulador = acumulador + error ** 2
     resultado = acumulador / len(ListaReal)
@@ -69,52 +62,45 @@ def MSE(ListaReal, Predichos):
 
 
 def evaluar_mm(ventas, n, inicio):
-    # Pone a prueba una media móvil con los meses pasados
-    # Entra: ventas = todas las ventas | n = N de la MM | inicio = posición del 1.er mes a predecir
-    # Hace:  para cada mes desde inicio, predice con los meses ANTERIORES (historia),
-    #        guarda la predicción y al final compara todo con las ventas reales
-    # Sale:  MSE de esa media móvil
+    # prueba la media movil con los meses que ya pasaron para ver que tanto falla
+    # para cada mes desde "inicio" predice usando solo los meses de antes
+    # (como si estuvieramos en ese mes y no supieramos lo que se iba a vender)
+    # al final compara las predicciones con lo real y saca el MSE
     predicciones = []
     for i in range(inicio, len(ventas)):
-        historia = ventas[:i]                    # meses antes del mes i
-        prediccion = media_movil(historia, n)    # predicción del mes i
+        historia = ventas[:i]                    # los meses antes del mes i
+        prediccion = media_movil(historia, n)
         predicciones.append(prediccion)
-    reales = ventas[inicio:]                     # ventas reales de esos mismos meses
+    reales = ventas[inicio:]                     # lo que de verdad se vendio esos meses
     return MSE(reales, predicciones)
 
 def evaluar_ponderado(ventas, pesos, inicio):
-    # Pone a prueba un promedio ponderado con los meses pasados
-    # Entra: ventas = todas las ventas | pesos = [0.4, 0.6] o [0.1, 0.4, 0.5] | inicio = 1.er mes a predecir
-    # Hace:  para cada mes desde inicio, predice con los meses ANTERIORES (historia)
-    #        usando ponderadoN2 o ponderadoN3 según cuántos pesos haya,
-    #        guarda la predicción y al final compara todo con las ventas reales
-    # Sale:  MSE de ese ponderado
+    # lo mismo que evaluar_mm pero con el ponderado
+    # si le pasan 2 pesos usa ponderadoN2 y si son 3 usa ponderadoN3
     predicciones = []
 
-    if len(pesos) not in (2, 3):                      # validación: solo 2 o 3 pesos
+    if len(pesos) not in (2, 3):                      # si no son 2 o 3 pesos da error
         raise ValueError("El ponderado solo acepta 2 o 3 porcentajes")
-    
+
     for i in range(inicio, len(ventas)):
         historia = ventas[:i]                          # meses antes del mes i
-        if len(pesos) == 2:                            # ← NUEVO: ¿hay 2 pesos?
-            prediccion = ponderadoN2(historia, pesos)  # ← NUEVO: sí → ponderado N=2
-        else:                                          # ← NUEVO: si no (hay 3)...
-            prediccion = ponderadoN3(historia, pesos)  # ← NUEVO: → ponderado N=3
+        if len(pesos) == 2:
+            prediccion = ponderadoN2(historia, pesos)
+        else:
+            prediccion = ponderadoN3(historia, pesos)
         predicciones.append(prediccion)
-    reales = ventas[inicio:]                           # ventas reales de esos mismos meses
+    reales = ventas[inicio:]
     return MSE(reales, predicciones)
 
 
-# Pesos del profe (Regresión lineal.xlsx → hoja "MM y Ponderados")
+# pesos que puso el profe en el excel (hoja "MM y Ponderados")
 PESOS_N2 = [0.4, 0.6]
 PESOS_N3 = [0.1, 0.4, 0.5]
 
 
 def pronostico_modelo(historia, modelo):
-    # Predice el próximo mes con el modelo que se le diga por su nombre
-    # Entra: historia = ventas pasadas | modelo = nombre, ej. "MM N=3"
-    # Hace:  según el nombre, llama a la función que corresponde
-    # Sale:  pronóstico del próximo mes
+    # recibe el nombre del metodo (ej "MM N=3") y llama la funcion que toca
+    # devuelve el pronostico del proximo mes
     if modelo == "MM N=2":
         return media_movil(historia, 2)
     elif modelo == "MM N=3":
@@ -128,11 +114,13 @@ def pronostico_modelo(historia, modelo):
 
 
 def elegir_mejor(ventas, inicio):
-    # Examina a los 5 modelos y contrata al de menor error
-    # Entra: ventas = todas las ventas del producto | inicio = 1.er mes del examen (4)
-    # Hace:  1) saca el MSE (nota) de cada modelo  2) elige el menor
-    #        3) con el ganador pronostica el próximo mes  4) calcula D
-    # Sale:  resultados (nota de cada uno), ganador, pronóstico, D
+    # aca se escoge el mejor metodo:
+    # 1. saca el MSE de los 5 metodos
+    # 2. se queda con el de menor MSE
+    # 3. con ese hace el pronostico del proximo mes
+    # 4. calcula D
+    # inicio = 4 porque la MM N=4 necesita 4 meses para poder predecir,
+    # asi todos se prueban con los mismos meses y es justo
     resultados = {
         "MM N=2": evaluar_mm(ventas, 2, inicio),
         "MM N=3": evaluar_mm(ventas, 3, inicio),
@@ -140,22 +128,21 @@ def elegir_mejor(ventas, inicio):
         "Ponderado N=2": evaluar_ponderado(ventas, PESOS_N2, inicio),
         "Ponderado N=3": evaluar_ponderado(ventas, PESOS_N3, inicio),
     }
-    ganador = min(resultados, key=resultados.get)    # nombre con el MSE más bajo
-    pronostico = pronostico_modelo(ventas, ganador)  # el ganador predice octubre (con TODAS las ventas)
-    D = demanda_anual(pronostico)                    # D = pronóstico × 12
+    ganador = min(resultados, key=resultados.get)    # el nombre que tiene el MSE mas bajo
+    pronostico = pronostico_modelo(ventas, ganador)  # aca si usa todas las ventas para predecir octubre
+    D = demanda_anual(pronostico)
     return resultados, ganador, pronostico, D
 
 
 def predicciones_modelo(ventas, modelo, inicio):
-    # Para la gráfica: lo que el modelo predijo en cada mes pasado
-    # Entra: ventas | modelo = nombre del ganador | inicio
-    # Sale:  lista de predicciones (una por mes desde inicio)
+    # esto es para la grafica de real vs pronostico
+    # devuelve lo que el metodo hubiera predicho en cada mes
     predicciones = []
     for i in range(inicio, len(ventas)):
         historia = ventas[:i]
         predicciones.append(pronostico_modelo(historia, modelo))
     return predicciones
 
-# ---- Prueba rápida (solo corre si ejecutas este archivo directamente) ----
+# prueba: solo corre si se ejecuta este archivo solo (python pronostico.py)
 if __name__ == "__main__":
     print(elegir_mejor(ventasVasos, 4))

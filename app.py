@@ -1,12 +1,13 @@
 """
-ERP de Inventarios - interfaz (lo que ve el usuario).
-Para abrirlo:  python -m streamlit run app.py
+OptiStock - ERP de inventarios (esta es la pagina, lo que ve el usuario)
+Para abrirlo: python -m streamlit run app.py
 
-Módulo 1: Proyección de demanda      → modulos/pronostico.py
-Módulo 2: Lote económico de pedido   → modulos/eoq.py
-Módulo 3: Política y punto de reorden → modulos/seguridad.py
-Gráficas                              → modulos/graficas.py
-Excel de soporte                      → modulos/exportar.py
+Los calculos estan en la carpeta modulos:
+- pronostico.py: modulo 1, pronostico de la demanda
+- eoq.py: modulo 2, lote economico
+- seguridad.py: modulo 3, stock de seguridad y punto de reorden
+- graficas.py: el diente de sierra y la grafica de ventas
+- exportar.py: el excel que se descarga
 """
 import altair as alt
 import pandas as pd
@@ -18,7 +19,7 @@ st.set_page_config(page_title="OptiStock ERP", page_icon="📦", layout="wide")
 st.title("📦 OptiStock - ERP de Inventarios")
 st.caption("Tienda de vajilla: pronóstico, lote económico y punto de reorden")
 
-# Estilo extra (CSS): tarjetas de resultados en verde claro
+# CSS para que los cuadros de resultados salgan verdes
 st.markdown(
     """
     <style>
@@ -36,15 +37,15 @@ st.markdown(
 # ---------------- Datos ----------------
 productos = pd.read_csv("datos/productos.csv")
 ventas = pd.read_csv("datos/ventas.csv")
-INICIO = 4                    # 1.er mes del examen de los modelos (para que compita la MM N=4)
+INICIO = 4                    # desde el mes 4 se prueban los metodos (la MM N=4 necesita 4 meses)
 
 # ---------------- Barra lateral ----------------
 st.sidebar.title("📦 OptiStock")
 st.sidebar.caption("ERP de inventarios EOQ")
 producto = st.sidebar.selectbox("Producto", productos["producto"])
-fila = productos[productos["producto"] == producto].iloc[0]          # valores del CSV
+fila = productos[productos["producto"] == producto].iloc[0]          # la fila del producto en productos.csv
 
-# Sensibilidad (taller punto 2): cambiar las variables y ver cómo cambia todo
+# sensibilidad (punto 2 del taller): se pueden cambiar los valores y todo se recalcula
 st.sidebar.subheader("Parámetros")
 st.sidebar.caption("Si cambia un valor, se recalcula todo (análisis de sensibilidad).")
 Cu = st.sidebar.number_input("Cu - Costo unitario ($)", min_value=1.0,
@@ -68,7 +69,7 @@ DIAS = int(fila["dias_operacion"])
 
 
 def calcular_producto(nombre, Cu, Cp, i, m, Z):
-    # Corre los 3 módulos para un producto y devuelve todo junto
+    # corre los 3 modulos para un producto y devuelve todo en un diccionario
     lista = ventas[nombre].tolist()
     resultados, ganador, pron, D = pronostico.elegir_mejor(lista, INICIO)                    # módulo 1
     r = eoq.calcular_eoq(D, Cu, Cp, i, DIAS)                                                  # módulo 2
@@ -77,7 +78,7 @@ def calcular_producto(nombre, Cu, Cp, i, m, Z):
             "D": D, "r": r, "p": p, "m": m, "Cu": Cu, "Cp": Cp, "i": i, "Z": Z}
 
 
-# Producto elegido: con los parámetros de la barra lateral
+# el producto escogido usa los valores de la barra lateral
 calc = calcular_producto(producto, Cu, Cp, i, m, Z)
 lista, resultados, ganador, pron, D, r, p = (calc[k] for k in
                                              ["lista", "resultados", "ganador", "pron", "D", "r", "p"])
@@ -189,7 +190,7 @@ with tab_venta:
         f"Cuando queden {p['R']:,.0f} {producto.lower()} se piden {r['Q*']:,.0f} unidades."
     )
 
-    # --- Diagrama general de la política (diente de sierra) ---
+    # diente de sierra (punto 9 del taller)
     st.subheader("Diagrama de la política de inventario")
     demora = st.slider("Días de retraso del proveedor", 0, 10, 0,
                        key=f"demora_{producto}")
@@ -204,12 +205,13 @@ with tab_venta:
     else:
         st.caption(f"Los puntos amarillos son los pedidos. Lo mínimo que llega el inventario es {minimo:,.0f} und.")
 
-    # --- Stock actual: se guarda en st.session_state para que no se borre entre clics ---
+    # el stock se guarda en session_state porque streamlit vuelve a correr todo el codigo con cada clic
+    # y si fuera una variable normal se reiniciaria
     if "stock" not in st.session_state:
         st.session_state["stock"] = {}             # stock de cada producto
         st.session_state["historial"] = {}         # movimientos de cada producto
     if producto not in st.session_state["stock"]:
-        st.session_state["stock"][producto] = round(r["Q*"])   # empieza con un pedido completo
+        st.session_state["stock"][producto] = round(r["Q*"])   # arranca con un pedido lleno
         st.session_state["historial"][producto] = []
 
     st.subheader("Registrar movimiento")
@@ -217,7 +219,7 @@ with tab_venta:
     with col_a:
         cantidad = st.number_input("Unidades vendidas", min_value=1, value=50, step=1)
         if st.button("Registrar venta"):
-            if cantidad > st.session_state["stock"][producto]:      # no se puede vender lo que no hay
+            if cantidad > st.session_state["stock"][producto]:      # no deja vender mas de lo que hay
                 st.error("No hay stock suficiente.")
             else:
                 st.session_state["stock"][producto] -= cantidad
@@ -282,7 +284,7 @@ with tab_resumen:
         st.caption(f"Cuando queden {c['p']['R']:,.0f} unidades se piden {c['r']['Q*']:,.0f}.")
         st.divider()
 
-    # Tabla con todos los resultados (también va al Excel)
+    # tabla con todo (esta misma va al excel)
     resumen = pd.DataFrame([{
         "Producto": n,
         "Modelo ganador": c["ganador"],
@@ -307,7 +309,7 @@ with tab_resumen:
     st.subheader("Tabla general")
     st.dataframe(resumen, hide_index=True)
 
-    # Excel de soporte (taller punto 11)
+    # excel de soporte (punto 11 del taller)
     detalles = {"Ventas": ventas}
     for n, c in todos.items():
         detalles[f"MSE {n}"] = pd.DataFrame({"Modelo": list(c["resultados"]),
