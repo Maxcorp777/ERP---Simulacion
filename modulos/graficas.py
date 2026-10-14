@@ -53,7 +53,7 @@ def grafica_diente_sierra(tabla, R, SS_Q, pedidos, alto=320):
     )
     alarmas = pd.DataFrame({
         "Nivel": [R, SS_Q],
-        "Alarma": [f"R - Punto de reorden ({R:,.0f})", f"SS - Stock de seguridad ({SS_Q:,.0f})"],
+        "Alarma": [f"Alarma R ({R:,.0f})", f"SS - Stock de seguridad ({SS_Q:,.0f})"],
     })
     # mark_rule hace lineas horizontales, strokeDash es para que sean punteadas
     lineas_alarma = alt.Chart(alarmas).mark_rule(strokeDash=[6, 4], size=2).encode(
