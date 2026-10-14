@@ -14,8 +14,9 @@ import streamlit as st
 
 from modulos import pronostico, eoq, seguridad, graficas, exportar
 
-st.set_page_config(page_title="ERP de Inventarios", layout="wide")
-st.title("ERP de Inventarios - Tienda de vajilla")
+st.set_page_config(page_title="OptiStock ERP", page_icon="📦", layout="wide")
+st.title("📦 OptiStock — ERP de Inventarios")
+st.caption("Tienda de vajilla · Pronóstico, lote económico y punto de reorden")
 
 # Estilo extra (CSS): tarjetas de resultados en verde claro
 st.markdown(
@@ -38,6 +39,8 @@ ventas = pd.read_csv("datos/ventas.csv")
 INICIO = 4                    # 1.er mes del examen de los modelos (para que compita la MM N=4)
 
 # ---------------- Barra lateral ----------------
+st.sidebar.title("📦 OptiStock")
+st.sidebar.caption("ERP de inventarios EOQ")
 producto = st.sidebar.selectbox("Producto", productos["producto"])
 fila = productos[productos["producto"] == producto].iloc[0]          # valores del CSV
 
