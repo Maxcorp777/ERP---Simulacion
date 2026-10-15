@@ -67,13 +67,24 @@ tipo_sigma = st.sidebar.radio(
     help="La anual es para que quede en el mismo periodo que D.",
 )
 usar_sigma_anual = tipo_sigma.startswith("Anual")
+
+# cambiar la demanda anual y ver que pasa
+st.sidebar.subheader("Demanda")
+usar_D_manual = st.sidebar.checkbox("Cambiar la demanda anual D", key=f"chkD_{producto}")
+D_manual = None                      # None = se usa el pronóstico
+if usar_D_manual:
+    D_manual = st.sidebar.number_input("D - Demanda anual (und)", min_value=1,
+                                       value=1000, step=100, key=f"D_{producto}")
+    
 DIAS = int(fila["dias_operacion"])
 
 
-def calcular_producto(nombre, Cu, Cp, i, m, Z):
+def calcular_producto(nombre, Cu, Cp, i, m, Z, D_manual=None):
     # corre los 3 modulos para un producto y devuelve todo en un diccionario
     lista = ventas[nombre].tolist()
-    resultados, ganador, pron, D = pronostico.elegir_mejor(lista, INICIO)                    # módulo 1
+    resultados, ganador, pron, D = pronostico.elegir_mejor(lista, INICIO) 
+    if D_manual is not None:         # si puso una D, se usa esa en vez del pronóstico
+        D = D_manual                 # módulo 1
     r = eoq.calcular_eoq(D, Cu, Cp, i, DIAS)                                                  # módulo 2
     p = seguridad.calcular_politica(lista, D, r["Q*"], r["T"], Z, m, DIAS, usar_sigma_anual)  # módulo 3
     return {"lista": lista, "resultados": resultados, "ganador": ganador, "pron": pron,
@@ -81,7 +92,7 @@ def calcular_producto(nombre, Cu, Cp, i, m, Z):
 
 
 # el producto escogido usa los valores de la barra lateral
-calc = calcular_producto(producto, Cu, Cp, i, m, Z)
+calc = calcular_producto(producto, Cu, Cp, i, m, Z, D_manual)
 lista, resultados, ganador, pron, D, r, p = (calc[k] for k in
                                              ["lista", "resultados", "ganador", "pron", "D", "r", "p"])
 
