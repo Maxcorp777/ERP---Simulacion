@@ -264,7 +264,7 @@ with tab_venta:
     estado = seguridad.estado_inventario(stock, p["R"], p["SS_Q"])
     if estado == "critico":
         st.error(
-            f"🔴 Alerta: el stock ({stock}) está por debajo del SS ({p['SS_Q']:,.0f}). "
+            f"🔴 Alerta: el stock ({stock}) está por debajo del SS_Q ({p['SS_Q']:,.0f}). "
             f"Se está usando la reserva, hay que pedir {r['Q*']:,.0f} unidades ya."
         )
     elif estado == "pedir":
