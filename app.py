@@ -188,14 +188,14 @@ with tab_venta:
     st.info(
         "Al registrar una venta se resta del stock y se revisan dos alarmas: "
         "🟡 alarma (R): hay que hacer el pedido. "
-        "🔴 stock de seguridad (SS): ya se está usando la reserva."
+        "🔴 reserva de seguridad (SS_Q): ya se está usando."
     )
 
     st.subheader("Cuándo pedir")
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("σ - Desviación de las ventas", f"{p['σ']:,.1f} und")
-    c2.metric("SS - Stock de seguridad (Z × σ)", f"{p['SS']:,.1f} und")
-    c3.metric("🔴 SS para Q* (alarma crítica)", f"{p['SS_Q']:,.0f} und")
+    c2.metric("SS - Stock de seguridad del año (Z × σ)", f"{p['SS']:,.1f} und")
+    c3.metric("🔴 SS_Q (alarma crítica)", f"{p['SS_Q']:,.0f} und")
     c4.metric("🟡 Alarma (R = d x m + SS)", f"{p['R']:,.0f} und")
     c5, c6, c7, c8 = st.columns(4)
     c5.metric("d - Demanda diaria", f"{p['d']:,.1f} und/día")
@@ -328,7 +328,7 @@ with tab_resumen:
         "CT ($)": round(c["r"]["CT"], 0),
         "σ (und)": round(c["p"]["σ"], 2),
         "SS (und)": round(c["p"]["SS"], 2),
-        "SS para Q* (und)": round(c["p"]["SS_Q"], 2),
+        "SS_Q (und)": round(c["p"]["SS_Q"], 2),
         "d (und/día)": round(c["p"]["d"], 2),
         "Alarma R (und)": round(c["p"]["R"], 2),
         "PR - Punto de reorden (und)": round(c["p"]["PR"], 2),

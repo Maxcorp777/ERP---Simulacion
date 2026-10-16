@@ -53,7 +53,7 @@ def grafica_diente_sierra(tabla, R, SS_Q, pedidos, alto=320):
     )
     alarmas = pd.DataFrame({
         "Nivel": [R, SS_Q],
-        "Alarma": [f"Alarma R ({R:,.0f})", f"SS - Stock de seguridad ({SS_Q:,.0f})"],
+        "Alarma": [f"Alarma R ({R:,.0f})", f"SS_Q - Reserva de seguridad ({SS_Q:,.0f})"],
     })
     # mark_rule hace lineas horizontales, strokeDash es para que sean punteadas
     lineas_alarma = alt.Chart(alarmas).mark_rule(strokeDash=[6, 4], size=2).encode(
@@ -91,7 +91,7 @@ def _dibujo_ciclo(Q, T, R, SS_Q, dia_alarma, x_min, x_max, y_min, y_max, tramos,
     zona = alt.Chart(pd.DataFrame({"Día": [dia_alarma, T], "Inventario": [R, 0]})).mark_area(
         color="#D62728", opacity=0.25, clip=True).encode(x="Día:Q", y="Inventario:Q", y2=alt.datum(0))
     niveles = pd.DataFrame({"y": [R, SS_Q], "color": ["#E6A700", "#D62728"],
-                            "texto": [f"Alarma = {R:,.0f} und", f"SS = {SS_Q:,.1f} und"], "dy": [-8, 12]})
+                            "texto": [f"Alarma = {R:,.0f} und", f"SS_Q = {SS_Q:,.1f} und"], "dy": [-8, 12]})
     lineas = alt.Chart(niveles).mark_rule(strokeDash=[6, 4], size=2).encode(
         y="y:Q", color=alt.Color("color:N", scale=None))
     texto_alarma = alt.Chart(niveles.iloc[[0]]).mark_text(align="left", dx=4, dy=-8, fontSize=12, fontWeight="bold").encode(
