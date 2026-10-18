@@ -309,8 +309,8 @@ with tab_resumen:
             st.altair_chart(graficas.grafica_politica_clase(c["r"]["Q*"], c["r"]["T"], c["p"]["R"], c["p"]["SS_Q"],
                                                             c["p"]["Días de stock"], c["m"], c["p"]["Días de SS"],
                                                             c["p"]["PR"], alto=220, con_zoom=False), width="stretch")
-        st.caption(f"Alarma: cuando queden {c['p']['R']:,.0f} unidades. Se piden {c['r']['Q*']:,.0f} "
-                   f"(el último pedido del año, PR = {c['p']['PR']:,.0f}).")
+        st.caption(f"Alarma: cuando queden {c['p']['R']:,.0f} unidades se pide. "
+                   f"Pedidos normales de {c['r']['Q*']:,.0f}; en el último pedido del año se piden {c['p']['PR']:,.0f} (PR).")
         st.divider()
 
     # tabla con todo (esta misma va al excel)
